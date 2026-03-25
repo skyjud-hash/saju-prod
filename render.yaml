@@ -18,7 +18,7 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: ALLOWED_ORIGINS
-        value: https://saju-web.onrender.com
+        value: https://saju-web-srjz.onrender.com
       - key: APP_ENV
         value: production
       - key: LOG_LEVEL

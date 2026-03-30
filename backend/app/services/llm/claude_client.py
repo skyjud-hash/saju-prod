@@ -84,9 +84,11 @@ async def _ollama_stream(
         system_prompt = SYSTEM_PROMPT
 
     user_prompt = CATEGORY_PROMPTS.get(category, CATEGORY_PROMPTS["comprehensive"])
-    # detail 카테고리인 경우 소제목을 프롬프트에 삽입
+    # detail 카테고리인 경우 소제목을 프롬프트에 삽입 (입력 새니타이징)
     if category in ("saju_detail", "brain_detail", "growth_detail") and title:
-        user_prompt = user_prompt.replace("{title}", title)
+        import re
+        safe_title = re.sub(r'[^\w\s가-힣·\-()（）]', '', title)[:100]
+        user_prompt = user_prompt.replace("{title}", safe_title)
 
     payload = {
         "model": settings.ollama_model,
@@ -195,9 +197,11 @@ async def _claude_stream(
         system_prompt = SYSTEM_PROMPT
 
     user_prompt = CATEGORY_PROMPTS.get(category, CATEGORY_PROMPTS["comprehensive"])
-    # detail 카테고리인 경우 소제목을 프롬프트에 삽입
+    # detail 카테고리인 경우 소제목을 프롬프트에 삽입 (입력 새니타이징)
     if category in ("saju_detail", "brain_detail", "growth_detail") and title:
-        user_prompt = user_prompt.replace("{title}", title)
+        import re
+        safe_title = re.sub(r'[^\w\s가-힣·\-()（）]', '', title)[:100]
+        user_prompt = user_prompt.replace("{title}", safe_title)
 
     max_tokens = CATEGORY_MAX_TOKENS.get(category, 4096)
 

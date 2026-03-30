@@ -10,10 +10,10 @@ class Settings(BaseSettings):
     log_level: str = "DEBUG"
 
     # DB
-    database_url: str = "postgresql+psycopg2://postgres:postgres@localhost:5432/sajuapp"
+    database_url: str = "sqlite:///./saju_local.db"
 
     # 보안
-    jwt_secret: str = "change-me-in-production"
+    jwt_secret: str = ""
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 60 * 24 * 7  # 7일
 

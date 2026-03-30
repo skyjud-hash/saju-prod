@@ -53,9 +53,12 @@ def analyze_saju(
 ):
     """사주 분석 엔드투엔드: 입력 → 계산 → 템플릿 해석 → DB 저장 → 응답."""
 
-    # 1. 입력 파싱
-    parts = payload.birth_date.split("-")
-    birth_year, birth_month, birth_day = int(parts[0]), int(parts[1]), int(parts[2])
+    # 1. 입력 파싱 (안전한 날짜 변환)
+    try:
+        parsed_date = date.fromisoformat(payload.birth_date)
+        birth_year, birth_month, birth_day = parsed_date.year, parsed_date.month, parsed_date.day
+    except (ValueError, AttributeError) as e:
+        raise HTTPException(status_code=400, detail=f"잘못된 날짜 형식입니다: {payload.birth_date}") from e
     birth_hour, birth_minute = None, None
     if payload.birth_time:
         tp = payload.birth_time.split(":")

@@ -32,10 +32,14 @@ app = FastAPI(
     redoc_url=None,
 )
 
-# CORS
+# CORS — 허용 도메인 명시 (운영: ALLOWED_ORIGINS 환경변수로 설정)
+_cors_origins = settings.cors_origins + [
+    "https://saju-web-srjz.onrender.com",
+    "https://saju-api-thnp.onrender.com",
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

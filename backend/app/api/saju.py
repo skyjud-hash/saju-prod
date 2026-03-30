@@ -17,12 +17,32 @@ from app.core.database import get_db
 from app.models.saju_request import SajuRequest
 from app.models.saju_result import SajuResult
 from app.models.llm_log import LlmLog
+from app.models.shared_result import SharedResult
 from app.schemas.saju import AiInterpretRequest, SajuAnalyzeRequest, SajuAnalyzeResponse, InputSummary
 from app.services.saju_engine.orchestrator import calculate_saju
 from app.services.llm.claude_client import check_claude_available, interpret_saju_full, interpret_saju_stream
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+
+@router.post("/calculate")
+def calculate_preview(payload: dict):
+    """사주 라이브 프리뷰 — DB 저장 없이 순수 계산만 수행."""
+    try:
+        raw_calc = calculate_saju(
+            birth_year=payload.get("birth_year"),
+            birth_month=payload.get("birth_month"),
+            birth_day=payload.get("birth_day"),
+            birth_hour=payload.get("birth_hour"),
+            birth_minute=payload.get("birth_minute"),
+            gender=payload.get("gender_for_daewoon", "male"),
+            calendar_type=payload.get("calendar_type", "solar"),
+        )
+        return raw_calc
+    except Exception as e:
+        logger.error("계산 오류: %s", e)
+        raise HTTPException(status_code=500, detail=f"사주 계산 오류: {e}") from e
 
 
 @router.post("/analyze", response_model=SajuAnalyzeResponse)
@@ -102,39 +122,40 @@ def analyze_saju(
 
 @router.get("/ai/status")
 async def ai_status():
-    """Claude API 상태 확인."""
+    """LLM 상태 확인 — Ollama 또는 Claude."""
+    from app.core.config import settings
     available = await check_claude_available()
-    return {
-        "available": available,
-        "provider": "claude" if available else None,
-        "message": "Claude API 연결됨" if available else "CLAUDE_API_KEY가 설정되지 않았습니다.",
-    }
+    if settings.ollama_model:
+        provider = "ollama" if available else None
+        msg = f"Ollama ({settings.ollama_model}) 연결됨" if available else "Ollama 서버에 연결할 수 없습니다."
+    else:
+        provider = "claude" if available else None
+        msg = "Claude API 연결됨" if available else "CLAUDE_API_KEY가 설정되지 않았습니다."
+    return {"available": available, "provider": provider, "message": msg}
 
 
-@router.post("/ai-interpret")
+@router.post("/ai/interpret")
 async def ai_interpret(
-    payload: AiInterpretRequest,
-    db: Session = Depends(get_db),
+    request: Request,
+    category: str = Query("destiny_manual"),
+    title: str = Query(""),
+    tag: str = Query(""),
 ):
     """Claude로 사주 해석 (SSE 스트리밍).
 
-    1. DB에서 raw_calculation_json 조회
-    2. Claude API에 전달 (계산 재수행 금지)
-    3. 스트리밍 응답
+    프론트엔드에서 raw_calculation을 직접 전달받아 Claude에 보냄.
+    category는 query parameter로 받음.
+    title은 saju_detail 카테고리에서 소제목 텍스트를 전달할 때 사용.
+    tag는 saju_detail에서 소제목의 카테고리 태그 (#기질, #커리어 등)를 전달.
     """
-    # DB에서 결과 조회
-    result = db.query(SajuResult).filter(SajuResult.id == payload.result_id).first()
-    if not result:
-        raise HTTPException(status_code=404, detail="결과를 찾을 수 없습니다.")
-
     available = await check_claude_available()
     if not available:
         raise HTTPException(status_code=503, detail="CLAUDE_API_KEY가 설정되지 않았습니다.")
 
-    raw_calc = result.raw_calculation_json
+    raw_calc = await request.json()
 
     async def event_stream():
-        async for chunk in interpret_saju_stream(raw_calc, payload.category):
+        async for chunk in interpret_saju_stream(raw_calc, category, title=title, tag=tag):
             for line in chunk.split("\n"):
                 yield f"data: {line}\n"
             yield "\n"
@@ -147,7 +168,7 @@ async def ai_interpret(
     )
 
 
-@router.post("/ai-interpret-full")
+@router.post("/ai/interpret-full")
 async def ai_interpret_full(
     payload: AiInterpretRequest,
     db: Session = Depends(get_db),
@@ -198,4 +219,49 @@ async def ai_interpret_full(
             "input": log_data.get("input_tokens"),
             "output": log_data.get("output_tokens"),
         },
+    }
+
+
+# ===== 공유 기능 =====
+
+@router.post("/share")
+async def create_share(
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """사주 결과를 공유 링크로 저장."""
+    payload = await request.json()
+
+    shared = SharedResult(
+        input_name=payload.get("input_name"),
+        birth_date=payload.get("birth_date"),
+        gender=payload.get("gender"),
+        raw_calculation=payload.get("raw_calculation", {}),
+        ai_texts=payload.get("ai_texts"),
+    )
+    db.add(shared)
+    db.commit()
+    db.refresh(shared)
+
+    return {
+        "share_id": shared.share_id,
+        "share_url": f"/share/{shared.share_id}",
+    }
+
+
+@router.get("/share/{share_id}")
+def get_shared(share_id: str, db: Session = Depends(get_db)):
+    """공유된 사주 결과 조회."""
+    shared = db.query(SharedResult).filter(SharedResult.share_id == share_id).first()
+    if not shared:
+        raise HTTPException(status_code=404, detail="공유된 결과를 찾을 수 없습니다.")
+
+    return {
+        "share_id": shared.share_id,
+        "input_name": shared.input_name,
+        "birth_date": shared.birth_date,
+        "gender": shared.gender,
+        "raw_calculation": shared.raw_calculation,
+        "ai_texts": shared.ai_texts,
+        "created_at": shared.created_at.isoformat() if shared.created_at else None,
     }

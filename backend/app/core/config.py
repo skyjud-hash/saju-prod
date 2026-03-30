@@ -21,6 +21,10 @@ class Settings(BaseSettings):
     claude_api_key: str = ""
     claude_model: str = "claude-sonnet-4-20250514"
 
+    # Ollama (로컬 LLM)
+    ollama_base_url: str = "http://localhost:11434"
+    ollama_model: str = "gemma3:12b"
+
     # CORS
     allowed_origins: str = "http://localhost:5173"
 

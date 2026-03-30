@@ -11,6 +11,7 @@ class NormalizedBirthData:
     historical_offset_minutes: int = 0
     true_solar_offset_minutes: int = 0
     adjusted_datetime: datetime | None = None
+    hour_unknown: bool = False
 
 
 @dataclass
@@ -78,15 +79,45 @@ class HiddenStemResult:
 @dataclass
 class DaewoonResult:
     cycle_index: int
-    start_age: float
-    end_age: float
+    start_age: int
+    end_age: int
     start_year: int | None
     end_year: int | None
     stem_code: str
     branch_code: str
     stem_kr: str
     branch_kr: str
-    direction: str
+    stem_hanja: str = ""
+    branch_hanja: str = ""
+    direction: str = ""
+    # 십성 (일간 기준)
+    stem_ten_god_kr: str = ""
+    stem_ten_god_code: str = ""
+    branch_ten_god_kr: str = ""    # 지지 본기 기준
+    branch_ten_god_code: str = ""
+    # 십이운성 (일간 기준)
+    twelve_stage_kr: str = ""
+    twelve_stage_code: str = ""
+
+
+@dataclass
+class SewoonResult:
+    """세운(歲運) — 매년 간지 + 십성 + 십이운성."""
+    year: int
+    stem_code: str
+    branch_code: str
+    stem_kr: str
+    branch_kr: str
+    stem_hanja: str = ""
+    branch_hanja: str = ""
+    # 십성 (일간 기준)
+    stem_ten_god_kr: str = ""
+    stem_ten_god_code: str = ""
+    branch_ten_god_kr: str = ""    # 지지 본기 기준
+    branch_ten_god_code: str = ""
+    # 십이운성 (일간 기준)
+    twelve_stage_kr: str = ""
+    twelve_stage_code: str = ""
 
 
 @dataclass

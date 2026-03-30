@@ -3,7 +3,6 @@
 from app.services.saju_engine.dto import FullSajuResult
 from app.services.saju_engine.ganzhi_math import get_stem_meta
 from app.services.saju_engine.interpretation_data import (
-    ELEMENT_CAREER_MAP,
     ELEMENT_DEFICIT,
     ELEMENT_EXCESS,
     ILGAN_INTERPRETATION,
@@ -27,7 +26,6 @@ class Interpreter:
         sections.append(self._layer4_relations(result))
         sections.append(self._layer5_twelve_stages(result))
         sections.append(self._layer6_daewoon(result))
-        sections.append(self._layer7_career(result))
 
         return [s for s in sections if s is not None]
 
@@ -268,7 +266,7 @@ class Interpreter:
         content = (
             f"대운이 {dir_kr}으로 흐릅니다. "
             f"대운은 10년 단위로 바뀌는 큰 운의 흐름으로, "
-            f"각 시기에 어떤 오행의 에너지가 강해지는지에 따라 학업과 진로에 유리한 시기가 달라집니다."
+            f"각 시기에 어떤 오행의 에너지가 강해지는지에 따라 삶의 방향과 에너지가 달라집니다."
         )
 
         return {
@@ -279,68 +277,3 @@ class Interpreter:
             "details": lines,
         }
 
-    def _layer7_career(self, result: FullSajuResult) -> dict | None:
-        """레이어 7: 종합 진로 추천 (격국 용신 기반)."""
-        fe = result.five_elements
-        if not fe:
-            return None
-
-        total = sum(fe.values())
-        if total == 0:
-            return None
-
-        # 격국 판정에서 산출된 용신 사용 (학술적으로 정확)
-        if result.gyeokguk and result.gyeokguk.yongshin_element:
-            yongshin_el = result.gyeokguk.yongshin_element
-        else:
-            # fallback: 가장 부족한 오행
-            deficit_elements = sorted(fe.items(), key=lambda x: x[1])
-            yongshin_el = deficit_elements[0][0]
-
-        career_data = ELEMENT_CAREER_MAP.get(yongshin_el)
-
-        # 십성 기반 보조 추천
-        sipsung_careers = []
-        sipsung_majors = []
-        if result.ten_gods:
-            counts = {}
-            for tg in result.ten_gods:
-                code = tg.ten_god_code
-                counts[code] = counts.get(code, 0) + 1
-            group_scores = {
-                "비겁": counts.get("bijeon", 0) + counts.get("geopjae", 0),
-                "식상": counts.get("siksin", 0) + counts.get("sanggwan", 0),
-                "재성": counts.get("pyeonjae", 0) + counts.get("jeongjae", 0),
-                "관성": counts.get("pyeongwan", 0) + counts.get("jeonggwan", 0),
-                "인성": counts.get("pyeonin", 0) + counts.get("jeongin", 0),
-            }
-            top_group = max(group_scores.items(), key=lambda x: x[1])[0]
-            tg_data = TEN_GOD_GROUP_INTERPRETATION.get(top_group)
-            if tg_data:
-                sipsung_careers = tg_data["careers"]
-                sipsung_majors = tg_data["majors"]
-
-        if not career_data:
-            return None
-
-        content = (
-            f"오행 분석 결과 {ELEMENT_KR[yongshin_el]} 방향의 활동이 균형을 맞추는 데 도움이 됩니다. "
-            f"추천 분야: {career_data['direction']}"
-        )
-
-        details = []
-        details.append("오행 기반 추천 직업: " + ", ".join(career_data["careers"][:5]))
-        details.append("오행 기반 추천 전공: " + ", ".join(career_data["majors"][:5]))
-
-        if sipsung_careers:
-            details.append("십성 기반 추천 직업: " + ", ".join(sipsung_careers[:4]))
-        if sipsung_majors:
-            details.append("십성 기반 추천 전공: " + ", ".join(sipsung_majors[:4]))
-
-        return {
-            "section": "career",
-            "icon": "🎯",
-            "title": "진로 방향 추천",
-            "content": content,
-            "details": details,
-        }

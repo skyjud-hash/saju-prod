@@ -13,7 +13,9 @@ def normalize_birth_datetime(
     birth_hour: int | None,
     birth_minute: int | None,
 ) -> NormalizedBirthData:
-    hour = 12 if birth_hour is None else birth_hour
+    # birth_hour=None이면 시간 미입력 → hour_unknown 플래그 설정
+    hour_unknown = birth_hour is None
+    hour = 0 if birth_hour is None else birth_hour
     minute = 0 if birth_minute is None else birth_minute
 
     local_dt = datetime(birth_year, birth_month, birth_day, hour, minute)
@@ -21,4 +23,5 @@ def normalize_birth_datetime(
     return NormalizedBirthData(
         local_datetime=local_dt,
         adjusted_datetime=local_dt,
+        hour_unknown=hour_unknown,
     )

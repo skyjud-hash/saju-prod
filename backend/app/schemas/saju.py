@@ -37,4 +37,4 @@ class SajuAnalyzeResponse(BaseModel):
 class AiInterpretRequest(BaseModel):
     """POST /api/saju/ai-interpret 입력."""
     result_id: int
-    category: str = Field("comprehensive", examples=["comprehensive", "personality", "career", "study"])
+    category: str = Field("destiny_manual", examples=["destiny_manual", "growth_routine", "bio_rhythm"])

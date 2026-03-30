@@ -1,5 +1,4 @@
-from sqlalchemy import BigInteger, Column, DateTime, Integer, String, Text, func
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import JSON, BigInteger, Column, DateTime, Integer, String, Text, func
 from app.core.database import Base
 
 
@@ -13,8 +12,8 @@ class LlmLog(Base):
     category = Column(String(50))
     input_tokens = Column(Integer)
     output_tokens = Column(Integer)
-    request_payload = Column(JSONB)
-    response_payload = Column(JSONB)
+    request_payload = Column(JSON)
+    response_payload = Column(JSON)
     latency_ms = Column(Integer)
     status_code = Column(Integer)
     error_message = Column(Text)

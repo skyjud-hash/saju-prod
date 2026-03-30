@@ -1,4 +1,4 @@
-from sqlalchemy import BigInteger, Boolean, Column, Date, DateTime, ForeignKey, String, Text, Time, func
+from sqlalchemy import BigInteger, Boolean, Column, Date, DateTime, String, Text, Time, func
 from app.core.database import Base
 
 
@@ -6,7 +6,7 @@ class SajuRequest(Base):
     __tablename__ = "saju_requests"
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
-    user_id = Column(BigInteger, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    user_id = Column(BigInteger, nullable=True)
     input_name = Column(String(100))
     birth_date = Column(Date, nullable=False)
     birth_time = Column(Time, nullable=True)
